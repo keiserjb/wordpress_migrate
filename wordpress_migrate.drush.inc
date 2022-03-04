@@ -6,7 +6,7 @@
  */
 
 /**
- * Implementation of hook_drush_help().
+ * Implements hook_drush_help().
  */
 function wordpress_migrate_drush_help($section) {
   switch ($section) {
@@ -16,7 +16,7 @@ function wordpress_migrate_drush_help($section) {
 }
 
 /**
- * Implementation of hook_drush_command().
+ * Implements hook_drush_command().
  */
 function wordpress_migrate_drush_command() {
   static $commands = FALSE;
@@ -29,7 +29,7 @@ function wordpress_migrate_drush_command() {
     'examples' => array(
       'wordpress-migrate-import public://wordpress/blog.xml' => 'Import blog data',
     ),
-    'drupal dependencies' => array('migrate'),
+    'backdrop dependencies' => array('migrate'),
   );
   return $items;
 }
@@ -55,12 +55,12 @@ function drush_wordpress_migrate_import($filename) {
   }
 
   // Notify user
-  if (variable_get('wordpress_migrate_notification', 0) == 1) {
+  if (config_get('wordpress_migrate.settings', 'wordpress_migrate_notification') == 1) {
     $account = user_load($blog->getUid());
     $params['account'] = $account;
     $params['output'] = ob_get_contents();
     ob_end_flush();
-    drupal_mail('wordpress_migrate', $mail_key, $account->mail,
+    backdrop_mail('wordpress_migrate', $mail_key, $account->mail,
       user_preferred_language($account), $params);
   }
 }

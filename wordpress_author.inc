@@ -3,7 +3,7 @@
 /**
  * @file
  *
- * Support for migrating authors from a WordPress blog into Drupal.
+ * Support for migrating authors from a WordPress blog into Backdrop.
  */
 
 /**
@@ -18,13 +18,13 @@ class WordPressAuthor extends WordPressMigration {
 
     $this->map = new MigrateSQLMap($this->machineName,
       array(
-        'wp:author_login' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => TRUE,
-          'description' => 'WordPress author username',
-        )
+      'wp:author_login' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'WordPress author username',
       ),
+    ),
       WordPressAuthorDestination::getKeySchema()
     );
 
@@ -53,21 +53,38 @@ class WordPressAuthor extends WordPressMigration {
     $this->addFieldMapping('mail', 'wp:author_email')
          ->xpath('wp:author_email');
     $this->addFieldMapping('roles')
-         ->defaultValue(DRUPAL_AUTHENTICATED_RID);
+         ->defaultValue(BACKDROP_AUTHENTICATED_RID);
     $this->addFieldMapping('status')
          ->defaultValue(1);
 
     // Unmapped destination fields
-    $this->addUnmigratedDestinations(array('pass', 'theme', 'signature',
-      'signature_format', 'created', 'access', 'login', 'timezone', 'language',
-      'picture', 'init', 'is_new', 'role_names', 'data'));
+    $this->addUnmigratedDestinations(array(
+      'pass',
+      'theme',
+      'signature',
+      'signature_format',
+      'created',
+      'access',
+      'login',
+      'timezone',
+      'language',
+      'picture',
+      'init',
+      'is_new',
+      'role_names',
+      'data',
+    ));
     if (module_exists('path')) {
       $this->addUnmigratedDestinations(array('path'));
     }
 
     // Unmapped source fields
-    $this->addUnmigratedSources(array('wp:author_display_name',
-      'wp:author_first_name', 'wp:author_last_name', 'wp:author_id'));
+    $this->addUnmigratedSources(array(
+      'wp:author_display_name',
+      'wp:author_first_name',
+      'wp:author_last_name',
+      'wp:author_id',
+    ));
   }
 }
 
@@ -158,7 +175,7 @@ class WordPressAuthorDestination extends MigrateDestinationUser {
    */
   public function bulkRollback(array $uids) {
     // Make sure we only attempt each uid once - if multiple authors had the
-    // same email address in WordPress, the corresponding Drupal uid will be in
+    // same email address in WordPress, the corresponding Backdrop uid will be in
     // the array twice, we'll delete the linked_authors row the first time we
     // see it, and the second pass on that uid will delete the account.
     $uids = array_unique($uids, SORT_NUMERIC);

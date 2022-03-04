@@ -3,7 +3,7 @@
 /**
  * @file
  *
- * Support for migrating tags from a WordPress blog into Drupal.
+ * Support for migrating tags from a WordPress blog into Backdrop.
  */
 
 /**
@@ -20,20 +20,20 @@ class WordPressTag extends WordPressMigration {
     // identifier of a tag.
     $this->map = new MigrateSQLMap($this->machineName,
       array(
-        'wp:tag_slug' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => TRUE,
-          'description' => 'WordPress tag machine name',
-        )
+      'wp:tag_slug' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'WordPress tag machine name',
       ),
+    ),
       MigrateDestinationTerm::getKeySchema()
     );
 
     $fields = array(
-        'wp:tag_slug' => 'Unique "machine name" of the tag',
-        'wp:tag_name' => 'User-friendly tag name',
-        'wp:tag_description' => 'Description of tag',
+      'wp:tag_slug' => 'Unique "machine name" of the tag',
+      'wp:tag_name' => 'User-friendly tag name',
+      'wp:tag_description' => 'Description of tag',
     );
 
     // Construct the source and destination objects.

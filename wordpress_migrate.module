@@ -5,8 +5,36 @@ define('WORDPRESS_MIGRATE_ACCESS_MIGRATE', 'migrate wordpress blogs');
 /**
  * @file
  * API and drush commands to support migration of data from WordPress
- * into a Drupal installation.
+ * into a Backdrop installation.
  */
+
+/**
+ * Implements hook_autoload_info().
+ */
+function wordpress_migrate_autoload_info() {
+  return array(
+    'WordPressMigration' => 'wordpress.inc',
+    'WordPressBlog' => 'wordpress.inc',
+    'WordPressAttachmentSource' => 'wordpress_attachment.inc',
+    'WordPressAttachment' => 'wordpress_attachment.inc',
+    'WordPressAuthor' => 'wordpress_author.inc',
+    'WordPressAuthorDestination' => 'wordpress_author.inc',
+    'WordPressCategory' => 'wordpress_category.inc',
+    'WordPressCommentXMLReader' => 'wordpress_comment.inc',
+    'WordPressPostCommentXMLReader' => 'wordpress_comment.inc',
+    'WordPressPageCommentXMLReader' => 'wordpress_comment.inc',
+    'WordPressComment' => 'wordpress_comment.inc',
+    'WordPressItemSource' => 'wordpress_item.inc',
+    'WordPressItemMigration' => 'wordpress_item.inc',
+    'WordPressBlogEntry' => 'wordpress_item.inc',
+    'WordPressPage' => 'wordpress_item.inc',
+    'WordPressMigrateWizard' => 'wordpress_migrate.migrate.inc',
+    'WordPressXMLReader' => 'wordpress_source.inc',
+    'WordPressSourceXML' => 'wordpress_source.inc',
+    'WordPressTag' => 'wordpress_tag.inc',
+    'WordpressMigrateStreamWrapper' => 'wordpress_wrapper.inc',
+  );
+}
 
 /**
  * Implements hook_permission().
@@ -14,7 +42,7 @@ define('WORDPRESS_MIGRATE_ACCESS_MIGRATE', 'migrate wordpress blogs');
 function wordpress_migrate_permission() {
   return array(
     WORDPRESS_MIGRATE_ACCESS_MIGRATE => array(
-      'title' => t('Migrate WordPress blogs into Drupal'),
+      'title' => t('Migrate WordPress blogs into Backdrop'),
     ),
   );
 }
@@ -29,41 +57,57 @@ function wordpress_migrate_stream_wrappers() {
       'class' => 'WordpressMigrateStreamWrapper',
       'description' => t('Uploaded WordPress WXR dumps for import - not to be seen by the world.'),
       'type' => STREAM_WRAPPERS_LOCAL_HIDDEN,
-    )
+    ),
   );
 
   return $wrappers;
 }
 
 /**
- * Implementation of hook_mail().
+ * Implements hook_config_info().
+ */
+function wordpress_migrate_config_info() {
+  $prefixes['wordpress_migrate.settings'] = array(
+    'label' => t('Migration from WordPress settings'),
+    'group' => t('Configuration'),
+  );
+  return $prefixes;
+}
+
+/**
+ * Implements hook_mail().
  *
  * @param $key
  * @param $message
  * @param $params
  */
 function wordpress_migrate_mail($key, &$message, $params) {
+  $config = config('wordpress_migrate.settings');
   $data['user'] = $params['account'];
   $options['language'] = $message['language'];
   $variables = array();
   user_mail_tokens($variables, $data, $options);
   $variables['!output'] = $params['output'];
   $langcode = $message['language']->language;
-  $subject = variable_get('wordpress_migrate_notification_subject', '');
+  $subject = $config->get('wordpress_migrate_notification_subject');
   $message['subject'] = t($subject, $variables, array('langcode' => $langcode));
   switch ($key) {
     case 'import_complete':
-      $body = variable_get('wordpress_migrate_notification_body', '');
+      $body = $config->get('wordpress_migrate_notification_body');
       break;
     case 'import_failure':
-      $body = variable_get('wordpress_migrate_notification_failure_body', '');
+      $body = $config->get('wordpress_migrate_notification_failure_body');
       break;
   }
   $message['body'][] = t($body, $variables, array('langcode' => $langcode));
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function wordpress_migrate_blog_class() {
-  return variable_get('wordpress_migrate_blog_class', 'WordPressBlog');
+  return config_get('wordpress_migrate.settings', 'wordpress_migrate_blog_class');
 }
 
 /**
@@ -76,3 +120,5 @@ function wordpress_migrate_blog($filename, $arguments = array()) {
   $blog_class = wordpress_migrate_blog_class();
   return new $blog_class($filename, $arguments);
 }
+
+

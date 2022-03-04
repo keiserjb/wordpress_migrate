@@ -3,7 +3,7 @@
 /**
  * @file
  *
- * Support for migrating categories from a WordPress blog into Drupal.
+ * Support for migrating categories from a WordPress blog into Backdrop.
  */
 
 /**
@@ -20,13 +20,13 @@ class WordPressCategory extends WordPressMigration {
     // identifier of a category.
     $this->map = new MigrateSQLMap($this->machineName,
       array(
-        'wp:category_nicename' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => TRUE,
-          'description' => 'WordPress category machine name',
-        )
+      'wp:category_nicename' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'WordPress category machine name',
       ),
+    ),
       MigrateDestinationTerm::getKeySchema()
     );
 

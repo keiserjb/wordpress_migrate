@@ -3,7 +3,7 @@
 /**
  * @file
  *
- * Support for migrating posts and pages from a WordPress blog into Drupal.
+ * Support for migrating posts and pages from a WordPress blog into Backdrop.
  */
 
 /**
@@ -44,7 +44,7 @@ class WordPressItemSource extends MigrateSourceXML {
   /**
    * Provides a list of available source fields, keyed by the field name
    * as it appears in the source data, with descriptions as the values.
-   * 
+   *
    * @return array
    */
   public function fields() {
@@ -65,10 +65,10 @@ class WordPressItemSource extends MigrateSourceXML {
       'wp:post_name' => 'Trailing component of link',
       'wp:status' => 'Item status (publish/draft/inherit)',
       'wp:post_parent' => 'Parent item ID (?)',
-      'wp:menu_order' => 'Equivalent to Drupal weight?',
+      'wp:menu_order' => 'Equivalent to Backdrop weight?',
       'wp:post_type' => 'Item type (post/page/attachment)',
       'wp:post_password' => '?',
-      'wp:is_sticky' => 'Equivalent to Drupal sticky flag',
+      'wp:is_sticky' => 'Equivalent to Backdrop sticky flag',
       'category' => 'Categories (as nicename) assigned to this item',
       'tag' => 'Tags (as nicename) assigned to this item',
       'content' => 'Extracted from Wordpress content:encoded',
@@ -147,7 +147,7 @@ abstract class WordPressItemMigration extends WordPressMigration {
 
     // WordPress post type
     $this->postType = $this->arguments['post_type'];
-    // Drupal content type (bundle)
+    // Backdrop content type (bundle)
     $bundle = $this->arguments['bundle'];
 
     // Save tag/category fields (used in prepare()).
@@ -161,13 +161,13 @@ abstract class WordPressItemMigration extends WordPressMigration {
     // post_id is the unique ID of items in WordPress
     $this->map = new MigrateSQLMap($this->machineName,
       array(
-        'wp:post_id' => array(
-          'type' => 'int',
-          'not null' => TRUE,
-          'unsigned' => TRUE,
-          'description' => 'WordPress post ID',
-        )
+      'wp:post_id' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'description' => 'WordPress post ID',
       ),
+    ),
       MigrateDestinationNode::getKeySchema()
     );
 
@@ -205,10 +205,10 @@ abstract class WordPressItemMigration extends WordPressMigration {
     if (module_exists('comment')) {
       $this->addFieldMapping('comment', 'wp:comment_status')
            ->xpath('wp:comment_status')
-           ->description('WP "open" mapped to Drupal COMMENT_NODE_OPEN');
+           ->description('WP "open" mapped to Backdrop COMMENT_NODE_OPEN');
     }
     $this->addFieldMapping('status', 'status')
-         ->description('Set Drupal status to 1 iff wp:status=publish');
+         ->description('Set Backdrop status to 1 iff wp:status=publish');
     $this->addFieldMapping(NULL, 'wp:post_parent')
          ->xpath('wp:post_parent')
          ->description('Only applies to attachments');
@@ -227,7 +227,7 @@ abstract class WordPressItemMigration extends WordPressMigration {
                  ->defaultValue(0);
           }
           break;
-        // Set path aliases to their original WordPress values
+          // Set path aliases to their original WordPress values
         case 1:
           $this->addFieldMapping('path', 'link');
           if (module_exists('pathauto')) {
@@ -235,7 +235,7 @@ abstract class WordPressItemMigration extends WordPressMigration {
                  ->defaultValue(0);
           }
           break;
-        // Have pathauto generate new aliases
+          // Have pathauto generate new aliases
         case 2:
           $this->addFieldMapping('path');
           if (!module_exists('redirect')) {
@@ -305,8 +305,17 @@ abstract class WordPressItemMigration extends WordPressMigration {
     }
 
     // Unmapped destination fields
-    $this->addUnmigratedDestinations(array('is_new', 'revision', 'language',
-      'promote', 'revision_uid', 'log', 'tnid', 'translate', 'body:language'));
+    $this->addUnmigratedDestinations(array(
+      'is_new',
+      'revision',
+      'language',
+      'promote',
+      'revision_uid',
+      'log',
+      'tnid',
+      'translate',
+      'body:language',
+    ));
 
     // Unmapped source fields
     $this->addUnmigratedSources(array('wp:post_id', 'wp:menu_order', 'wp:post_type'));
@@ -389,7 +398,7 @@ abstract class WordPressItemMigration extends WordPressMigration {
       }
     }
 
-    // Translate WordPress comment_status to Drupal values
+    // Translate WordPress comment_status to Backdrop values
     if (module_exists('comment')) {
       if ($wp_row->comment_status == 'open') {
         $row->{'wp:comment_status'} = COMMENT_NODE_OPEN;
@@ -468,7 +477,7 @@ abstract class WordPressItemMigration extends WordPressMigration {
     $caption_close = $matches[3];
 
     preg_match('|width="(.*?)"|i', $caption_open, $matches);
-    $width = (int)$matches[1] + 10;
+    $width = (int) $matches[1] + 10;
     $style = "width: {$width}px;";
 
     preg_match('|align="(.*?)"|i', $caption_open, $matches);
@@ -569,7 +578,7 @@ abstract class WordPressItemMigration extends WordPressMigration {
           'style' => '',
         ),
       );
-      $result = '[[' . drupal_json_encode($video_info) . ']]';
+      $result = '[[' . backdrop_json_encode($video_info) . ']]';
     }
 
     return $result;
@@ -579,26 +588,26 @@ abstract class WordPressItemMigration extends WordPressMigration {
    * Replace a kml_flashembed tag with an HTML <object> tag.
    *
    [kml_flashembed movie="http://example.com/video/soundslider.swf"
-    FVARS="size=0" height="368" width="420" /]
+   FVARS="size=0" height="368" width="420" /]
    <object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
-   			id="fm_soundslider_1640275925"
-   			class="flashmovie"
-   			width="420"
-   			height="368">
-   	<param name="movie" value="http://example.com/video/soundslider.swf"" />
-   	<param name="flashvars" value="size=0" />
-   	<!--[if !IE]>-->
-   	<object	type="application/x-shockwave-flash"
-   			data="http://example.com/video/soundslider.swf""
-   			name="fm_soundslider_1640275925"
-   			width="420"
-   			height="368">
-   		<param name="flashvars" value="size=0" />
-   	<!--<![endif]-->
+   id="fm_soundslider_1640275925"
+   class="flashmovie"
+   width="420"
+   height="368">
+   <param name="movie" value="http://example.com/video/soundslider.swf"" />
+   <param name="flashvars" value="size=0" />
+   <!--[if !IE]>-->
+   <object	type="application/x-shockwave-flash"
+   data="http://example.com/video/soundslider.swf""
+   name="fm_soundslider_1640275925"
+   width="420"
+   height="368">
+   <param name="flashvars" value="size=0" />
+   <!--<![endif]-->
 
-   	<!--[if !IE]>-->
-   	</object>
-   	<!--<![endif]-->
+   <!--[if !IE]>-->
+   </object>
+   <!--<![endif]-->
    </object>
    * @param array $matches
    */
@@ -608,7 +617,7 @@ abstract class WordPressItemMigration extends WordPressMigration {
     preg_match_all('|(?P<name>\w+)="(?P<value>.*?)"|', $matches[0], $attribute_matches);
     foreach ($attribute_matches['name'] as $delta => $name) {
       $value = $attribute_matches['value'][$delta];
-      switch (drupal_strtolower($name)) {
+      switch (backdrop_strtolower($name)) {
         case 'movie':
           // Sometimes they've got their own player in their ahead of the movie,
           // strip it out
@@ -638,7 +647,7 @@ abstract class WordPressItemMigration extends WordPressMigration {
     }
     $result .= "<!--[if !IE]>-->\n";
     $result .= '<object type="application/x-shockwave-flash" data="' . $movie .
-               '"' . $attribute_string. ">\n";
+               '"' . $attribute_string . ">\n";
     if (isset($flashvars)) {
       $result .= '<param name="flashvars" value="' . $flashvars . "\" />\n";
     }
@@ -664,7 +673,7 @@ abstract class WordPressItemMigration extends WordPressMigration {
 
   /**
    * If we have a local link of the form ?p=34, translate the WordPress ID into
-   * a Drupal nid, and rewrite the link.
+   * a Backdrop nid, and rewrite the link.
    *
    * @param array $matches
    */
@@ -672,13 +681,15 @@ abstract class WordPressItemMigration extends WordPressMigration {
     // Default to the existing string
     $return = $matches[0];
 
-    $wordpress_id = (int)$matches[1];
+    $wordpress_id = (int) $matches[1];
 
     // Check the blog entry and page maps to see if we can map this to a nid
     static $maps = array();
     if (empty($maps)) {
-      $machines = array($this->generateMachineName('WordPressBlogEntry'),
-        $this->generateMachineName('WordPressPage'));
+      $machines = array(
+        $this->generateMachineName('WordPressBlogEntry'),
+        $this->generateMachineName('WordPressPage'),
+      );
       foreach ($machines as $machine) {
         $maps[] = MigrationBase::getInstance($machine)->getMap();
       }
@@ -736,16 +747,16 @@ abstract class WordPressItemMigration extends WordPressMigration {
    * @param stdClass $row
    */
   public function prepare(stdClass $node, stdClass $row) {
-    // With WXR version 1.0, match creator username to Drupal username if
+    // With WXR version 1.0, match creator username to Backdrop username if
     // possible; otherwise, use the user that initiated the import. With later
     // versions, we've already got the right uid via the author migration.
     if ($this->blog->getWxrVersion() == '1.0') {
-      static $drupal_static_fast;
-      if (!isset($drupal_static_fast)) {
-        $drupal_static_fast['user_map'] = &drupal_static(__FUNCTION__);
-        $drupal_static_fast['default_user'] = &drupal_static(__FUNCTION__ . 'DefaultUser');
+      static $backdrop_static_fast;
+      if (!isset($backdrop_static_fast)) {
+        $backdrop_static_fast['user_map'] = &backdrop_static(__FUNCTION__);
+        $backdrop_static_fast['default_user'] = &backdrop_static(__FUNCTION__ . 'DefaultUser');
       }
-      $user_map = &$drupal_static_fast['user_map'];
+      $user_map = &$backdrop_static_fast['user_map'];
       if (!isset($user_map[$row->creator])) {
         $user_map[$row->creator] = db_select('users', 'u')
                                    ->fields('u', array('uid'))
@@ -753,7 +764,7 @@ abstract class WordPressItemMigration extends WordPressMigration {
                                    ->execute()
                                    ->fetchField();
         if (!$user_map[$row->creator]) {
-          $default_user = &$drupal_static_fast['default_user'];
+          $default_user = &$backdrop_static_fast['default_user'];
           if (!isset($default_user)) {
             $default_user = db_select('wordpress_migrate', 'wpm')
                             ->fields('wpm', array('uid'))

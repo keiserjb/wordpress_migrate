@@ -3,6 +3,10 @@
 /*
  * Implementation of hook_migrate_api().
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function wordpress_migrate_migrate_api() {
   $api = array(
     'api' => 2,
@@ -64,9 +68,10 @@ class WordPressMigrateWizard extends MigrateUIWizard {
    * First step - find out how to get the source data.
    */
   public function sourceDataForm(&$form_state) {
+    $config = config('wordpress_migrate.settings');
     // Make sure we have a private directory configured
-    if (!variable_get('wordpress_migrate_private_path', '') &&
-        !variable_get('file_private_path', '')) {
+    if (!$config->get('wordpress_migrate_private_path') &&
+        !config_get('system.performance', 'file_private_path')) {
       $message = t('A private file system path must be <a href="@config">configured</a>
         to securely store your uploaded WordPress file.',
         array('@config' => url('admin/config/media/file-system', array('query' => array('destination' => current_path())))));
@@ -79,7 +84,7 @@ class WordPressMigrateWizard extends MigrateUIWizard {
     }
     $form['overview'] = array(
       '#prefix' => '<p>',
-      '#markup' => t('This wizard supports importing into your Drupal site from ' .
+      '#markup' => t('This wizard supports importing into your Backdrop site from ' .
         'a WordPress blog. To be able to use this wizard, you must have the ' .
         'address and credentials of the WordPress blog, or an XML file exported ' .
         'from the blog.'),
@@ -88,8 +93,8 @@ class WordPressMigrateWizard extends MigrateUIWizard {
     $form['description'] = array(
       '#prefix' => '<p>',
       '#markup' => t('You will be led through a series of steps, allowing you to ' .
-        'customize what will be imported into Drupal and how it will be mapped. ' .
-        'At the end of this process, a migration job will be '.
+        'customize what will be imported into Backdrop and how it will be mapped. ' .
+        'At the end of this process, a migration job will be ' .
         'generated and you will be left at the Migrate dashboard, from which ' .
         'you can perform the import, monitor its progress, roll it back, etc.'),
       '#suffix' => '</p>',
@@ -101,15 +106,20 @@ class WordPressMigrateWizard extends MigrateUIWizard {
         '#markup' => '<p>' . t('You have the <a href="@media">Media module</a> enabled - to
           take advantage of Media features, you need to also install and enable the
           <a href="@extras">Migrate Extras module</a>.' . '</p>',
-          array('@media' => url('http://drupal.org/project/media'),
-            '@extras' => url('http://drupal.org/project/migrate_extras'))),
+          array(
+          '@media' => url('http://drupal.org/project/media'),
+          '@extras' => url('http://drupal.org/project/migrate_extras'),
+        )),
         '#suffix' => '</div>',
       );
     }
 
     $form['source']['source_select'] = array(
       '#type' => 'radios',
-      '#options' => array(0 => t('Import from a file'), 1 => t('Import from a URL')),
+      '#options' => array(
+        0 => t('Import from a file'),
+        1 => t('Import from a URL'),
+      ),
       '#default_value' => 0,
       '#attributes' => array('class' => array('container-inline')),
     );
@@ -178,7 +188,7 @@ class WordPressMigrateWizard extends MigrateUIWizard {
     $directory = 'wordpress://';
     if (!file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
       form_set_error('wxr_file',
-        t('Could not prepare directory %directory - make sure your Drupal files directory exists and is writable',
+        t('Could not prepare directory %directory - make sure your Backdrop files directory exists and is writable',
           array('%directory' => $directory)));
       return;
     }
@@ -294,12 +304,12 @@ class WordPressMigrateWizard extends MigrateUIWizard {
     $form['overview'] = array(
       '#prefix' => '<p>',
       '#markup' => t('User accounts for authors in the WordPress blog may be
-        imported to Drupal. If you select <strong>Yes</strong>, any authors in
-        the WordPress file who do not match existing Drupal accounts (based on
-        email address) will have new Drupal accounts automatically created.
+        imported to Backdrop. If you select <strong>Yes</strong>, any authors in
+        the WordPress file who do not match existing Backdrop accounts (based on
+        email address) will have new Backdrop accounts automatically created.
         Note that their passwords are not imported - they must be reset after
         import.<br/>
-        If you select <strong>No</strong>, you must choose an existing Drupal
+        If you select <strong>No</strong>, you must choose an existing Backdrop
         account which will be the author of any WordPress content whose author
         is not imported. '),
       '#suffix' => '</p>',
@@ -308,7 +318,10 @@ class WordPressMigrateWizard extends MigrateUIWizard {
     $form['do_migration'] = array(
       '#type' => 'radios',
       '#title' => t('Create new users for existing WordPress content authors?'),
-      '#options' => array(1 => t('Yes'), 0 => t('No')),
+      '#options' => array(
+        1 => t('Yes'),
+        0 => t('No'),
+      ),
       '#default_value' => 1,
     );
 
@@ -348,7 +361,7 @@ class WordPressMigrateWizard extends MigrateUIWizard {
     $form['overview'] = array(
       '#prefix' => '<p>',
       '#markup' => t('WordPress blogs contain two primary kinds of content,
-        blog posts and pages. Here you may choose what types of Drupal nodes
+        blog posts and pages. Here you may choose what types of Backdrop nodes
         to create from each of those content types, or omit one or both from
         the import entirely.'),
       '#suffix' => '</p>',
@@ -437,9 +450,9 @@ class WordPressMigrateWizard extends MigrateUIWizard {
     $form = array();
 
     $empty_field = array(
-       '#type' => 'value',
-       '#value' => '',
-     );
+      '#type' => 'value',
+      '#value' => '',
+    );
 
     $vocabs = $this->vocabularies($selected_post_type);
     if (!empty($vocabs)) {
@@ -468,19 +481,26 @@ class WordPressMigrateWizard extends MigrateUIWizard {
       $form['tag_field'] = $form['category_field'] = $empty_field;
     }
 
+    // TODO This variable was probably removed in Backdrop without replacement.
     if (module_exists('comment') &&
         (variable_get('comment_' . $selected_post_type, COMMENT_NODE_OPEN)
          != COMMENT_NODE_CLOSED)) {
       $form['comments'] = array(
         '#type' => 'radios',
         '#title' => t('Import comments?'),
-        '#options' => array(1 => t('Yes'), 0 => t('No')),
+        '#options' => array(
+          1 => t('Yes'),
+          0 => t('No'),
+        ),
         '#default_value' => 1,
       );
       $form['pingbacks'] = array(
         '#type' => 'radios',
         '#title' => t('Ignore pingbacks?'),
-        '#options' => array(1 => t('Yes'), 0 => t('No')),
+        '#options' => array(
+          1 => t('Yes'),
+          0 => t('No'),
+        ),
         '#default_value' => 1,
       );
     }
@@ -594,7 +614,7 @@ class WordPressMigrateWizard extends MigrateUIWizard {
           '#type' => 'checkbox',
           '#title' => t('Generate redirects'),
           '#description' => t('If this box is checked, redirects will be set up from
-            the former WordPress blog URLs to the new URLs on your Drupal site'),
+            the former WordPress blog URLs to the new URLs on your Backdrop site'),
           '#default_value' => FALSE,
         );
       }

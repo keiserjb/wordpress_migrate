@@ -9,9 +9,9 @@
 /**
  * @deprecated
  */
-class WordPressXMLReader extends MigrateXMLReader {}
+class WordPressXMLReader extends MigrateXMLReader { }
 
 /**
  * @deprecated
  */
-class WordPressSourceXML extends MigrateSourceXML {}
+class WordPressSourceXML extends MigrateSourceXML { }

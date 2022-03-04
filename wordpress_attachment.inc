@@ -50,13 +50,13 @@ class WordPressAttachment extends WordPressMigration {
     // post_id is the unique ID of items in WordPress
     $this->map = new MigrateSQLMap($this->machineName,
       array(
-        'wp:post_id' => array(
-          'type' => 'int',
-          'not null' => TRUE,
-          'unsigned' => TRUE,
-          'description' => 'WordPress post ID',
-        )
+      'wp:post_id' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'description' => 'WordPress post ID',
       ),
+    ),
       MigrateDestinationFile::getKeySchema()
     );
 
@@ -75,14 +75,35 @@ class WordPressAttachment extends WordPressMigration {
          ->description('Mapping is handled dynamically');
 
     // Unmapped destination fields
-    $this->addUnmigratedDestinations(array('destination_dir',
-                                     'file_replace', 'preserve_files', 'source_dir'));
+    $this->addUnmigratedDestinations(array(
+      'destination_dir',
+      'file_replace',
+      'preserve_files',
+      'source_dir',
+    ));
 
     // Unmapped source fields
-    $this->addUnmigratedSources(array('link', 'guid', 'description', 'excerpt:encoded',
-      'wp:post_id', 'wp:comment_status', 'wp:ping_status', 'wp:post_name', 'wp:status',
-      'wp:menu_order', 'wp:post_type', 'wp:post_password', 'wp:is_sticky', 'tag', 'category',
-      '_wp_attached_file', '_wp_attachment_metadata', 'title', 'content:encoded'));
+    $this->addUnmigratedSources(array(
+      'link',
+      'guid',
+      'description',
+      'excerpt:encoded',
+      'wp:post_id',
+      'wp:comment_status',
+      'wp:ping_status',
+      'wp:post_name',
+      'wp:status',
+      'wp:menu_order',
+      'wp:post_type',
+      'wp:post_password',
+      'wp:is_sticky',
+      'tag',
+      'category',
+      '_wp_attached_file',
+      '_wp_attachment_metadata',
+      'title',
+      'content:encoded',
+    ));
     $this->addFieldMapping(NULL, 'pubDate')
          ->description('Use post_date')
          ->issueGroup(t('DNM'));
@@ -141,14 +162,14 @@ class WordPressAttachment extends WordPressMigration {
    * @param stdClass $row
    */
   public function prepare(stdClass $file, stdClass $row) {
-    // Match creator username to Drupal username if possible; otherwise, use
+    // Match creator username to Backdrop username if possible; otherwise, use
     // the user that initiated the import
-    static $drupal_static_fast;
-    if (!isset($drupal_static_fast)) {
-      $drupal_static_fast['user_map'] = &drupal_static(__FUNCTION__);
-      $drupal_static_fast['default_user'] = &drupal_static(__FUNCTION__ . 'DefaultUser');
+    static $backdrop_static_fast;
+    if (!isset($backdrop_static_fast)) {
+      $backdrop_static_fast['user_map'] = &backdrop_static(__FUNCTION__);
+      $backdrop_static_fast['default_user'] = &backdrop_static(__FUNCTION__ . 'DefaultUser');
     }
-    $user_map = &$drupal_static_fast['user_map'];
+    $user_map = &$backdrop_static_fast['user_map'];
     if (!isset($user_map[$row->{'dc:creator'}])) {
       $user_map[$row->{'dc:creator'}] = db_select('users', 'u')
                                  ->fields('u', array('uid'))
@@ -156,7 +177,7 @@ class WordPressAttachment extends WordPressMigration {
                                  ->execute()
                                  ->fetchField();
       if (!$user_map[$row->{'dc:creator'}]) {
-        $default_user = &$drupal_static_fast['default_user'];
+        $default_user = &$backdrop_static_fast['default_user'];
         if (!isset($default_user)) {
           $default_user = db_select('wordpress_migrate', 'wpm')
                           ->fields('wpm', array('uid'))
@@ -172,7 +193,7 @@ class WordPressAttachment extends WordPressMigration {
 
   /**
    * Called after file object is saved - maintain a mapping from the URL on the
-   * original WordPress blog to the URI in Drupal.
+   * original WordPress blog to the URI in Backdrop.
    *
    * @param stdClass $file
    * @param stdClass $row
@@ -230,7 +251,7 @@ class WordPressAttachment extends WordPressMigration {
             unset($parent_node->{$attachment_field}[LANGUAGE_NONE][0]);
           }
 
-          $parent_node->{$attachment_field}[LANGUAGE_NONE][] = (array)$file;
+          $parent_node->{$attachment_field}[LANGUAGE_NONE][] = (array) $file;
           $this->disablePathauto($parent_node);
           // Maintain the original update datestamp
           $changed = $parent_node->changed;
@@ -252,8 +273,10 @@ class WordPressAttachment extends WordPressMigration {
     }
 
     db_merge('wordpress_migrate_attachment')
-      ->key(array('blog_id' => $this->blog->getBlogID(),
-                  'original_url' => $row->{'wp:attachment_url'}))
+      ->key(array(
+      'blog_id' => $this->blog->getBlogID(),
+      'original_url' => $row->{'wp:attachment_url'},
+    ))
       ->fields($fields)
       ->execute();
 
@@ -263,7 +286,7 @@ class WordPressAttachment extends WordPressMigration {
     // TODO: Cache fids to add, do them all at once
     if (module_exists('media_gallery')) {
       global $user;
-      $blog_title = t("@name's blog", array('@name' => format_username($user)));
+      $blog_title = t("@name's blog", array('@name' => user_format_name($user)));
       $gallery_nid = db_select('node', 'n')
                      ->fields('n', array('nid'))
                      ->condition('type', 'media_gallery')
@@ -383,7 +406,7 @@ class WordPressAttachment extends WordPressMigration {
       // on the existing WordPress site, leave it be; if it is, copy it directly
       // and create the file entity.
       $blog_url = $this->blog->getBlogUrl();
-      $prefix_pattern = '|^' . $blog_url. '/|';
+      $prefix_pattern = '|^' . $blog_url . '/|';
       if (preg_match($prefix_pattern, $src)) {
         $file = array(
           'destination_file' => preg_replace($prefix_pattern, '', $src),
@@ -436,12 +459,12 @@ class WordPressAttachment extends WordPressMigration {
       'attributes' => $attributes,
     );
 
-    $result = '[[' . drupal_json_encode($img_info) . ']]';
+    $result = '[[' . backdrop_json_encode($img_info) . ']]';
 
     // Track file references so we can add to an attachment field (if any).
     $file->display = 1;
     $file->description = '';
-    $this->referencedFiles[] = (array)$file;
+    $this->referencedFiles[] = (array) $file;
 
     return $result;
   }

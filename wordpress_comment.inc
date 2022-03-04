@@ -3,7 +3,7 @@
 /**
  * @file
  *
- * Support for migrating comments from a WordPress blog into Drupal.
+ * Support for migrating comments from a WordPress blog into Backdrop.
  */
 
 /**
@@ -63,7 +63,7 @@ class WordPressCommentXMLReader extends MigrateXMLReader {
                 $this->currentElement->post_id = $this->postId;
               }
               $idnode = $this->currentElement->xpath($this->idQuery);
-              $this->currentId = (string)reset($idnode);
+              $this->currentId = (string) reset($idnode);
               break;
             }
             else {
@@ -124,31 +124,31 @@ class WordPressComment extends WordPressMigration {
     // comment_id is the unique ID of items in WordPress
     $this->map = new MigrateSQLMap($this->machineName,
       array(
-        'wp:comment_id' => array(
-          'type' => 'int',
-          'unsigned' => TRUE,
-          'not null' => TRUE,
-          'description' => 'WordPress comment ID',
-        )
+      'wp:comment_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'WordPress comment ID',
       ),
+    ),
       MigrateDestinationComment::getKeySchema()
     );
 
     $fields = array(
-        'wp:post_id' => 'Unique ID of the item the comment is attached to',
-        'wp:comment_id' => 'Unique ID of the comment',
-        'wp:comment_author' => 'Name of comment author',
-        'wp:comment_author_email' => 'Email address of comment author',
-        'wp:comment_author_url' => 'URL of comment author',
-        'wp:comment_author_IP' => 'IP address from which comment was posted',
-        'wp:comment_date' => 'Date of comment (what timezone?)',
-        'wp:comment_date_gmt' => 'Date of comment (GMT)',
-        'wp:comment_content' => 'Body of comment',
-        'wp:comment_approved' => '1/0/spam - spam comments will not be imported',
-        'wp:comment_type' => '?',
-        'wp:comment_parent' => 'comment_id (?) of parent comment',
-        'wp:comment_user_id' => 'WordPress user ID of commenter (?)',
-      );
+      'wp:post_id' => 'Unique ID of the item the comment is attached to',
+      'wp:comment_id' => 'Unique ID of the comment',
+      'wp:comment_author' => 'Name of comment author',
+      'wp:comment_author_email' => 'Email address of comment author',
+      'wp:comment_author_url' => 'URL of comment author',
+      'wp:comment_author_IP' => 'IP address from which comment was posted',
+      'wp:comment_date' => 'Date of comment (what timezone?)',
+      'wp:comment_date_gmt' => 'Date of comment (GMT)',
+      'wp:comment_content' => 'Body of comment',
+      'wp:comment_approved' => '1/0/spam - spam comments will not be imported',
+      'wp:comment_type' => '?',
+      'wp:comment_parent' => 'comment_id (?) of parent comment',
+      'wp:comment_user_id' => 'WordPress user ID of commenter (?)',
+    );
 
     $source_options = array(
       'reader_class' => $reader_class,
@@ -166,7 +166,7 @@ class WordPressComment extends WordPressMigration {
          ->xpath('wp:comment_parent')
          ->sourceMigration($this->generateMachineName('WordPressComment'));
     $this->addFieldMapping('uid')
-         ->description('Use email to match Drupal account; if no match, default to anonymous');
+         ->description('Use email to match Backdrop account; if no match, default to anonymous');
     $this->addFieldMapping('subject')
          ->description('No comment subjects in WP')
          ->issueGroup('DNM');
@@ -220,7 +220,7 @@ class WordPressComment extends WordPressMigration {
 
   /**
    * Implements Migration::prepareRow().
-   * 
+   *
    * @param $row
    *
    * @return bool
@@ -251,12 +251,12 @@ class WordPressComment extends WordPressMigration {
    * @param stdClass $row
    */
   public function prepare(stdClass $comment, stdClass $row) {
-    // Match creator email to Drupal account if possible; otherwise, use anonymous
-    static $drupal_static_fast;
-    if (!isset($drupal_static_fast)) {
-      $drupal_static_fast['user_map'] = &drupal_static(__FUNCTION__);
+    // Match creator email to Backdrop account if possible; otherwise, use anonymous
+    static $backdrop_static_fast;
+    if (!isset($backdrop_static_fast)) {
+      $backdrop_static_fast['user_map'] = &backdrop_static(__FUNCTION__);
     }
-    $user_map = &$drupal_static_fast['user_map'];
+    $user_map = &$backdrop_static_fast['user_map'];
     $comment_author_email = $this->xpathValue($row->xml->xpath('wp:comment_author_email'));
     if (!isset($user_map[$comment_author_email])) {
       $user_map[$comment_author_email] = db_select('users', 'u')
@@ -279,6 +279,6 @@ class WordPressComment extends WordPressMigration {
    * @return string
    */
   public function xpathValue($result) {
-    return (string)reset($result);
+    return (string) reset($result);
   }
 }
